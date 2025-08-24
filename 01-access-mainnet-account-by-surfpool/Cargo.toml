@@ -1,0 +1,11 @@
+[package]
+name = "surfpool-follow-by-solandy"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "surfpool_solandy"
+
+[dependencies]
+pinocchio = "0.9.0"
