@@ -1,14 +1,16 @@
+// This line tells Clippy "don't warn me about large error types in Result" for this entire file
 #![allow(clippy::result_large_err)]
 
 use anchor_lang::prelude::*;
 
-declare_id!("FqzkXZdwYjurnUKetJCAvaUw5WAqbwzU6gZEwydeEfqS");
+declare_id!("6KF9cy5LX8xq3rVEb8qF6C4n3z1ot9daDB9s7nRVEwuv");
 
 #[program]
 pub mod counter {
     use super::*;
 
-    pub fn close(_ctx: Context<CloseCounter>) -> Result<()> {
+    pub fn close(ctx: Context<CloseCounter>) -> Result<()> {
+        msg!("closing counter at value: {}", ctx.accounts.counter.count);
         Ok(())
     }
 
@@ -22,7 +24,9 @@ pub mod counter {
         Ok(())
     }
 
-    pub fn initialize(_ctx: Context<InitializeCounter>) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeCounter>) -> Result<()> {
+        let init_counter = &mut ctx.accounts.counter;
+        init_counter.count = 0;
         Ok(())
     }
 
@@ -38,9 +42,9 @@ pub struct InitializeCounter<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-  init,
-  space = 8 + Counter::INIT_SPACE,
-  payer = payer
+        init,
+        space = 8 + Counter::INIT_SPACE,
+        payer = payer
     )]
     pub counter: Account<'info, Counter>,
     pub system_program: Program<'info, System>,
@@ -51,8 +55,8 @@ pub struct CloseCounter<'info> {
     pub payer: Signer<'info>,
 
     #[account(
-  mut,
-  close = payer, // close account and return lamports to payer
+        mut,
+        close = payer, // close account and return lamports to payer
     )]
     pub counter: Account<'info, Counter>,
 }

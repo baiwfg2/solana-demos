@@ -31,6 +31,7 @@ export function useCounterProgram() {
   const initialize = useMutation({
     mutationKey: ['counter', 'initialize', { cluster }],
     mutationFn: (keypair: Keypair) =>
+      // the new Counter account must be signed by its private key to authorize creation at that address
       program.methods.initialize().accounts({ counter: keypair.publicKey }).signers([keypair]).rpc(),
     onSuccess: async (signature) => {
       transactionToast(signature)

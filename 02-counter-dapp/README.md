@@ -7,6 +7,10 @@ This is a Next.js app containing:
 - A basic Counter Solana program written in Anchor
 - UI components for interacting with the Counter program
 
+## Expected Result
+
+![](../assets/counter1.png)
+
 ## Getting Started
 
 ### Installation

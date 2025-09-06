@@ -36,6 +36,7 @@ export const defaultClusters: SolanaCluster[] = [
   },
 ]
 
+// browser local storage
 const clusterAtom = atomWithStorage<SolanaCluster>('solana-cluster', defaultClusters[0])
 const clustersAtom = atomWithStorage<SolanaCluster[]>('solana-clusters', defaultClusters)
 

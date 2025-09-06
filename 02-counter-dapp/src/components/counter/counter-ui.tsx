@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 
 export function CounterCreate() {
+  // type is UseMutationResult
   const { initialize } = useCounterProgram()
 
+  // mutateAsync(): Returns a Promise for the mutation
   return (
     <Button onClick={() => initialize.mutateAsync(Keypair.generate())} disabled={initialize.isPending}>
       Create {initialize.isPending && '...'}
