@@ -27,6 +27,13 @@ export function AppLayout({
         </main>
         <AppFooter />
       </div>
+      {/* 通常放在应用的根布局中，这样整个应用都能使用
+      自动管理通知的显示、位置和消失
+      支持不同类型的通知样式
+      响应式设计，适配不同屏幕尺寸
+
+      用于显示钱包连接状态、交易结果等通知
+      */}
       <Toaster />
     </ThemeProvider>
   )

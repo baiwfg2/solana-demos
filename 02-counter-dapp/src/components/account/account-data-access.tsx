@@ -16,6 +16,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 export function useGetBalance({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
 
+  // 用于异步数据获取和缓存管理
+  // 自动处理加载状态、错误状态、重试等
   return useQuery({
     queryKey: ['get-balance', { endpoint: connection.rpcEndpoint, address }],
     queryFn: () => connection.getBalance(address),

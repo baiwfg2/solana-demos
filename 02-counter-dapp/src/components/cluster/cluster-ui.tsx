@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { AppAlert } from '@/components/app-alert'
 
 export function ExplorerLink({ path, label, className }: { path: string; label: string; className?: string }) {
+  // ClusterProvider 中定义了
   const { getExplorerUrl } = useCluster()
   return (
     <a

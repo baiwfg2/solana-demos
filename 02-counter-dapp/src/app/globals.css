@@ -1,3 +1,13 @@
+/* 这是 Tailwind CSS v4+ 的新语法
+一次性导入所有 Tailwind 功能（base、components、utilities）
+更简洁，减少了重复代码
+支持新的 CSS 功能和优化
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+这是v3老版本写法
+ */
 @import 'tailwindcss';
 @import 'tw-animate-css';
 

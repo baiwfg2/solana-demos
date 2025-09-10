@@ -19,7 +19,7 @@ export function DashboardFeature() {
             <div key={index}>
               <a
                 href={link.href}
-                className="hover:text-gray-500 dark:hover:text-gray-300"
+                className="hover:text-cyan-500 dark:hover:text-blue-300"
                 target="_blank"
                 rel="noopener noreferrer"
               >
