@@ -2,8 +2,9 @@
 
 import { WalletButton } from '@/components/solana/solana-provider'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { IncrementButton, DecrementButton } from './pdacounter-ui'
+import { CounterDisplay } from './CounterDisplay'
 
 export default function PdaCounterFeature() {
   const { connected } = useWallet()
@@ -23,29 +24,10 @@ export default function PdaCounterFeature() {
       {/* Main Card */}
       <Card className="w-full max-w-md p-8 bg-card/50 backdrop-blur-sm border border-gray-800">
         <div className="flex flex-col items-center space-y-8">
-          {/* Current Count Display */}
-          <div className="text-center">
-            <p className="text-gray-400 text-lg mb-2">Current Count:</p>
-            <div className="text-4xl font-bold text-white">
-              {connected ? '0' : '-'}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
+          <CounterDisplay />
           <div className="w-full space-y-4">
-            <Button
-              disabled={!connected}
-              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
-            >
-              Increment Counter
-            </Button>
-            
-            <Button
-              disabled={!connected}
-              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
-            >
-              Decrement Counter
-            </Button>
+            <IncrementButton />
+            <DecrementButton />            
           </div>
         </div>
       </Card>
