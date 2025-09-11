@@ -57,6 +57,10 @@ pub mod counter {
     pub fn incre(ctx: Context<Increment>) -> Result<()> {
         instructions::increment::incre(ctx)
     }
+    
+    pub fn decre(ctx: Context<Decrement>) -> Result<()> {
+        instructions::decrement::decre(ctx)
+    }
 }
 
 #[derive(Accounts)]

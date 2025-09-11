@@ -6,10 +6,13 @@ This is a Next.js app containing:
 - Useful wallet UI elements setup using [@solana/web3.js](https://www.npmjs.com/package/@solana/web3.js)
 - A basic Counter Solana program written in Anchor
 - UI components for interacting with the Counter program
+- An extra counter illustraing incre/decre a pda counter account
 
 ## Expected Result
 
 ![](../assets/counter1.png)
+
+![](../assets/pda-counter.png)
 
 ## Getting Started
 

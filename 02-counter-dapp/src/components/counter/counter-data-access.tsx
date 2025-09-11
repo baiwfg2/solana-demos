@@ -15,6 +15,7 @@ export function useCounterProgram() {
   const { cluster } = useCluster()
   const transactionToast = useTransactionToast()
   const provider = useAnchorProvider()
+  // why use useMemo here ?
   const programId = useMemo(() => getCounterProgramId(cluster.network as Cluster), [cluster])
   const program = useMemo(() => getCounterProgram(provider, programId), [provider, programId])
 

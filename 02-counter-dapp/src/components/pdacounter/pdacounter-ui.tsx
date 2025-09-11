@@ -58,12 +58,46 @@ export function IncrementButton() {
 
 export function DecrementButton() {
     const { program, walletAddr, connected } = useProgram();
+    const [isOperating, setIsOperating] = useState(false);
+    const [txSig, setTxSig] = useState<string | null>(null);
+
+    useTransactionToast({ txSig });
+
+    const handleDecrement = async () => {
+        if (!walletAddr) return;
+        try {
+            setIsOperating(true);
+            const txSig = await program.methods.decre()
+                .accounts({payer: walletAddr})
+                .rpc();
+            setTxSig(txSig);
+        } catch (error) {
+            console.error("decrementing pda counter:", error);
+            toast.error("Transaction failed", {
+                description: `${error}`,
+                style: {
+                    border: "1px solid #rgba(239, 68, 68, 0.3)",
+                },
+                duration: 5000,
+            });
+        } finally {
+            setIsOperating(false);
+        }
+    };
     return (
         <Button
-            disabled={!connected}
+            onClick={handleDecrement}
+            disabled={isOperating || !connected}
             className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
         >
-            Decrement Counter
+            {isOperating ? (
+                <div>
+                    <div></div>
+                    <span>Processing ...</span>
+                </div>
+            ) : (
+                "Decrement Counter"
+            )}
         </Button>
     )
 }

@@ -4,7 +4,7 @@ import { Counter, CounterIDL } from "@project/anchor"
 import * as anchor from "@coral-xyz/anchor"
 import { PublicKey } from "@solana/web3.js";
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 interface UseProgramReturn {
     program: anchor.Program<Counter>;
@@ -19,22 +19,26 @@ export function useProgram(): UseProgramReturn {
     const wallet = useAnchorWallet();
     const walletAddr = wallet?.publicKey || null;
     const connected = !!wallet;
-    let program;
 
-    if (wallet) {
-        // create a provider with the wallet for tx signing
-        const provider = new anchor.AnchorProvider(connection, wallet, {
-            preflightCommitment: "confirmed",
-        });
-        program = new anchor.Program<Counter>(CounterIDL, provider);
-    } else {
-        // create program with just connection for read-only operations
-        program = new anchor.Program<Counter>(CounterIDL, { connection });
-    }
-    const counterAddr = PublicKey.findProgramAddressSync(
-        [Buffer.from("pdacounter")],
-        program.programId
-    )[0];
+    const program = useMemo(() => {
+        if (wallet) {
+            // create a provider with the wallet for tx signing
+            const provider = new anchor.AnchorProvider(connection, wallet, {
+                preflightCommitment: "confirmed",
+            });
+            return new anchor.Program<Counter>(CounterIDL, provider);
+        } else {
+            // create program with just connection for read-only operations
+            return new anchor.Program<Counter>(CounterIDL, { connection });
+        }
+    }, [connection, wallet]);
+
+    const counterAddr = useMemo(() => {
+        return PublicKey.findProgramAddressSync(
+            [Buffer.from("pdacounter")],
+            program.programId
+        )[0];
+    }, [program.programId]);
 
     useEffect(() => {
         const airdropFunc = async() => {
