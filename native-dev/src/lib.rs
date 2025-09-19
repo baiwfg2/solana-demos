@@ -6,6 +6,10 @@ use solana_program::{
     msg
 };
 
+pub mod state;
+pub mod instructions;
+pub use instructions::*;
+
 entrypoint!(process_instruction);
 
 pub fn process_instruction(
@@ -13,7 +17,7 @@ pub fn process_instruction(
     _accounts: &[AccountInfo],
     _instruction_data: &[u8],
 ) -> ProgramResult {
-    msg!("Hello, native!");
-
+    msg!("Hello, native - movies!");
+    movies_review::inst_movies_review(_program_id, _accounts, _instruction_data)?;
     Ok(())
 }
