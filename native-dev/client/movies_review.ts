@@ -46,9 +46,9 @@ async function sendMovieReview(connection: Connection, signer: Keypair, programI
         programId: programId,
         data: buffer,
         keys: [
-            // no need !
-            // { pubkey: signer.publicKey, isSigner: true, isWritable: false },
-            // { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            { pubkey: signer.publicKey, isSigner: true, isWritable: false },
+            { pubkey: pda, isSigner: false, isWritable: true },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
         ],
     });
     tx.add(inst);
