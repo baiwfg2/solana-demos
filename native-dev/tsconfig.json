@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    // 告诉 TypeScript 包含这些类型定义
+    // 这样你就可以使用 describe, it, expect 等全局函数而不报错
+    "types": ["mocha", "chai"],
+    "typeRoots": ["./node_modules/@types"],
+    // 包含 ES2015 (ES6) 的内置类型定义
+    // 支持 Promise, Map, Set, Symbol 等 ES6 特性
+    "lib": ["es2015"],
+    "module": "commonjs",
+    // 编译目标是 ES6
+    // 支持箭头函数、类、let/const 等 ES6 语法
+    "target": "es6",
+    // 允许 ES 模块和 CommonJS 模块互操作
+    // 可以这样导入 CommonJS 模块：
+    // import chai from 'chai';  // 而不是 import * as chai from 'chai'
+    // import { start } from 'solana-bankrun';  // 正常的 ES6 导入
+    "esModuleInterop": true
+  }
+}

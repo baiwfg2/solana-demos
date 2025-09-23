@@ -10,6 +10,9 @@ pub mod state;
 pub mod instructions;
 pub use instructions::*;
 
+pub mod error;
+pub use error::*;
+
 entrypoint!(process_instruction);
 
 pub fn process_instruction(
