@@ -9,7 +9,7 @@ import {
     sendAndConfirmTransaction,
 } from '@solana/web3.js';
 
-import { struct, u8, str } from '@coral-xyz/borsh';
+import { struct, u8, str, publicKey, u64 } from '@coral-xyz/borsh';
 import * as fs from 'fs';
 import * as os from 'os';
 import { expect } from 'chai';
@@ -38,16 +38,40 @@ const ixLayout = struct([
     str('description'),
 ]);
 
+const commentIdxLayout = struct([
+    u8('variant'),
+    str('comment'),
+]);
+
 const movieReviewLayout = struct([
+    str('discriminator'),
     u8('isInitialized'),
+    publicKey('reviewer'),
     u8('rating'),
     str('title'),
     str('description'),
 ]);
 
+const counterLayout = struct([
+    str('discriminator'),
+    u8('isInitialized'),
+    u64('count')
+]);
+
+const commentLayout = struct([
+    str('discriminator'),
+    u8('isInitialized'),
+    publicKey('reviewer'),
+    publicKey('commenter'),
+    str('comment'),
+    u64('count')
+]);
+
 describe('movie review program', () => {
     let buffer: Buffer;
 
+    const REVIEW_DISCRIMINATOR = "review";
+    const COMMENT_DISCRIMINATOR = "comment";
     const connection = new Connection('http://localhost:8899', 'confirmed');
     const programKeypair = Keypair.fromSecretKey(Uint8Array.from(
         JSON.parse(fs.readFileSync('./target/deploy/native_dev-keypair.json', 'utf8'))
@@ -58,23 +82,41 @@ describe('movie review program', () => {
     const payer = Keypair.fromSecretKey(
         Uint8Array.from(JSON.parse(fs.readFileSync(os.homedir() + '/.config/solana/id.json', 'utf8')))
     );
+    const user1 = Keypair.generate();
+
+    before(async () => {
+        await connection.requestAirdrop(user1.publicKey, LAMPORTS_PER_SOL * 1);
+    });
 
     beforeEach(() => {
         // set 1100 for case of 'description length 1001'
         buffer = Buffer.alloc(1100);
     });
 
-    async function sendTx(variant: number, title: string, rating: number, description: string, pda: PublicKey) {
-        ixLayout.encode(
-            {
-                variant: variant,
-                title: title,
-                rating: rating,
-                description: description,
-            },
-            buffer
-        );
-        const encodedBuffer = buffer.subarray(0, ixLayout.getSpan(buffer));
+    async function sendTx(variant: number, title: string, rating: number, description: string,
+        pda: PublicKey, pda_counter?: PublicKey, pda_comment?: PublicKey, commenter?: Keypair) {
+        if (variant != 2) {
+            ixLayout.encode(
+                {
+                    variant: variant,
+                    title: title,
+                    rating: rating,
+                    description: description,
+                },
+                buffer
+            );
+        } else {
+            commentIdxLayout.encode(
+                {
+                    variant: variant,
+                    comment: description,
+                },
+                buffer
+            );
+        }
+        const encodedBuffer = variant === 2
+            ? buffer.subarray(0, commentIdxLayout.getSpan(buffer))
+            : buffer.subarray(0, ixLayout.getSpan(buffer));
 
         const tx = new Transaction();
         let inst: TransactionInstruction;
@@ -85,6 +127,7 @@ describe('movie review program', () => {
                 keys: [
                     { pubkey: payer.publicKey, isSigner: true, isWritable: false },
                     { pubkey: pda, isSigner: false, isWritable: true },
+                    { pubkey: pda_counter, isSigner: false, isWritable: true },
                     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
                 ],
             });
@@ -97,9 +140,22 @@ describe('movie review program', () => {
                     { pubkey: pda, isSigner: false, isWritable: true },
                 ],
             });
+        } else if (variant === 2) {
+            inst = new TransactionInstruction({
+                programId: programId,
+                data: encodedBuffer,
+                keys: [
+                    { pubkey: commenter.publicKey, isSigner: true, isWritable: false },
+                    { pubkey: pda, isSigner: false, isWritable: true },
+                    { pubkey: pda_counter, isSigner: false, isWritable: true },
+                    { pubkey: pda_comment, isSigner: false, isWritable: true },
+                    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+                ],
+            });
         }
         tx.add(inst);
-        return sendAndConfirmTransaction(connection, tx, [payer]);
+        // if commenter is provided, commenter pays, or else payer pays
+        return sendAndConfirmTransaction(connection, tx, [commenter || payer]);
     }
 
     it('add movie review', async () => {
@@ -108,13 +164,18 @@ describe('movie review program', () => {
             [payer.publicKey.toBuffer(), Buffer.from(title)],
             programId
         );
-        await sendTx(0, title, 5, "This is the first movie of Rambo series", pda);
+        const [pda_counter] = PublicKey.findProgramAddressSync(
+            [pda.toBuffer(), Buffer.from("comment")],
+            programId
+        );
+        await sendTx(0, title, 5, "This is the first movie of Rambo series", pda, pda_counter);
 
         const accountInfo = await connection.getAccountInfo(pda);
         // layout must match the structure in rust
         const accountData = movieReviewLayout.decode(accountInfo.data);
 
         // Chai style assertions
+        expect(accountData.discriminator).to.equal(REVIEW_DISCRIMINATOR);
         expect(accountData.isInitialized).to.equal(1);
         expect(accountData.rating).to.equal(5);
         expect(accountData.title).to.equal(title);
@@ -127,8 +188,12 @@ describe('movie review program', () => {
             [payer.publicKey.toBuffer(), Buffer.from(title)],
             programId
         );
+        const [pda_counter] = PublicKey.findProgramAddressSync(
+            [pda.toBuffer(), Buffer.from("comment")],
+            programId
+        );
 
-        await sendTx(0, title, 5, "Original review", pda);
+        await sendTx(0, title, 5, "Original review", pda, pda_counter);
         await sendTx(1, title, 2, "Updated review", pda);
 
         const accountInfo = await connection.getAccountInfo(pda);
@@ -146,8 +211,12 @@ describe('movie review program', () => {
             [payer.publicKey.toBuffer(), Buffer.from(title)],
             programId
         );
+        const [pda_counter] = PublicKey.findProgramAddressSync(
+            [pda.toBuffer(), Buffer.from("comment")],
+            programId
+        );
 
-        await sendTx(0, title, 5, "Original review", pda);
+        await sendTx(0, title, 5, "Original review", pda, pda_counter);
         await expect(sendTx(1, title, 6, "Updated review", pda))
             .to.be.rejectedWith(/custom program error: 0x3/);
 
@@ -162,8 +231,12 @@ describe('movie review program', () => {
             [payer.publicKey.toBuffer(), Buffer.from(title)],
             programId
         );
+        const [pda_counter] = PublicKey.findProgramAddressSync(
+            [pda.toBuffer(), Buffer.from("comment")],
+            programId
+        );
 
-        await sendTx(0, title, 5, "Original review", pda);
+        await sendTx(0, title, 5, "Original review", pda, pda_counter);
         await expect(sendTx(1, title, 0, "Updated review", pda))
             .to.be.rejectedWith(/custom program error: 0x3/);
 
@@ -178,8 +251,12 @@ describe('movie review program', () => {
             [payer.publicKey.toBuffer(), Buffer.from(title)],
             programId
         );
+        const [pda_counter] = PublicKey.findProgramAddressSync(
+            [pda.toBuffer(), Buffer.from("comment")],
+            programId
+        );
 
-        await sendTx(0, title, 5, "Original review", pda);
+        await sendTx(0, title, 5, "Original review", pda, pda_counter);
         await expect(sendTx(1, title, 5, "Updated review".padEnd(1001, '.'), pda))
             .to.be.rejectedWith(/custom program error: 0x2/);
 
@@ -232,5 +309,36 @@ describe('movie review program', () => {
 
         await expect(sendAndConfirmTransaction(connection, tx, [payer]))
             .to.be.rejectedWith(/invalid instruction data/);
+    });
+
+    it("add comment for a review", async () => {
+        const title = `Comment-${Math.floor(Math.random() * 10000)}`;
+        const [pda] = PublicKey.findProgramAddressSync(
+            [payer.publicKey.toBuffer(), Buffer.from(title)],
+            programId
+        );
+        const [pda_counter] = PublicKey.findProgramAddressSync(
+            [pda.toBuffer(), Buffer.from("comment")],
+            programId
+        );
+        const getPdaComment = async () => {
+            const counterInfo = await connection.getAccountInfo(pda_counter);
+            const counterData = counterLayout.decode(counterInfo.data);
+            return PublicKey.findProgramAddressSync(
+                [pda.toBuffer(), counterData.count.toBuffer('le', 8)],
+                programId
+            )[0];
+        };
+        await sendTx(0, title, 5, "This is the first movie of Die Hard series", pda, pda_counter);
+        await sendTx(2, '', -1, 'This is a comment 1', pda,pda_counter, await getPdaComment(), payer);
+        const comment2 = await getPdaComment();
+        await sendTx(2, '', -1, 'This is a comment 2', pda, pda_counter, comment2, user1);
+
+        const accountInfo = await connection.getAccountInfo(comment2);
+        const accountData = commentLayout.decode(accountInfo.data);
+
+        expect(accountData.discriminator).to.equal(COMMENT_DISCRIMINATOR);
+        expect(accountData.commenter.toString()).to.equal(user1.publicKey.toString());
+        expect(accountData.comment).to.equal('This is a comment 2');
     });
 });

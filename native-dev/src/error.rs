@@ -13,6 +13,8 @@ pub enum ReviewError {
     InvalidRating,
 }
 
+// 实现了 From<ReviewError> for ProgramError 后，
+// 自动获得了 Into<ProgramError> for ReviewError
 impl From<ReviewError> for ProgramError {
     fn from(e: ReviewError) -> Self {
         ProgramError::Custom(e as u32)
