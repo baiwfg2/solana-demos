@@ -10,6 +10,8 @@ use solana_program::{
     system_instruction,
     sysvar::Sysvar,
 };
+use spl_associated_token_account::get_associated_token_address;
+use spl_token::ID as TOKEN_PROGRAM_ID;
 
 // MovieAccountState::try_from_slice and serialize
 use crate::state::{MovieComment, MovieCommentCounter, MoviesInstruction};
@@ -243,6 +245,59 @@ fn add_comment(program_id: &Pubkey, accounts: &[AccountInfo], comment: String) -
 
     counter_data.counter += 1;
     counter_data.serialize(&mut &mut pda_counter.data.borrow_mut()[..])?;
+}
+
+fn initialize_token_mint(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    msg!("Instruction: Initialize Token Mint");
+    let account_info_iter = &mut accounts.iter();
+    let payer = next_account_info(account_info_iter)?;
+    let token_mint = next_account_info(account_info_iter)?;
+    let mint_auth = next_account_info(account_info_iter)?;
+    let token_program = next_account_info(account_info_iter)?;
+    let sysvar_rent = next_account_info(account_info_iter)?;
+    let system_program = next_account_info(account_info_iter)?;
+
+    let (mint_pda, mint_bump) = Pubkey::find_program_address(
+        &[b"token_mint"], program_id);
+    let (mint_auth_pda, _mint_auth_bump) =
+        Pubkey::find_program_address(&[b"token_auth"], program_id);
+    if *token_mint.key != mint_pda {
+        return Err(ReviewError::InvalidPDA.into());
+    }
+    if *mint_auth.key != mint_auth_pda {
+        return Err(ReviewError::InvalidPDA.into());
+    }
+    if *token_program.key != TOKEN_PROGRAM_ID {
+        return Err(ReviewError::IncorrectAccountError.into());
+    }
+
+    let rent = Rent::get()?;
+    let data_len = 82;
+    let rent_lamports = rent.minimum_balance(data_len);
+
+    invoke_signed(
+        &system_instruction::create_account(
+            payer.key,
+            token_mint.key,
+            rent_lamports,
+            data_len as u64,
+            token_program.key,
+        ),
+        &[payer.clone(), token_mint.clone(), system_program.clone()],
+        &[&[b"token_mint", &[mint_bump]]],
+    )?;
+    invoke_signed(
+        &spl_token::instruction::initialize_mint(
+            token_program.key,
+            token_mint.key,
+            mint_auth.key,
+            None,
+            9,
+        )?,
+        // sysvar_rent is necessary for initialize_mint ?
+        &[token_mint.clone(), sysvar_rent.clone(), mint_auth.clone()],
+        &[&[b"token_mint", &[mint_bump]]],
+    )?;
     Ok(())
 }
 
@@ -266,6 +321,7 @@ pub fn inst_movies_review(
         } => update_movie_review(program_id, accounts, title, rating, description),
 
         MoviesInstruction::AddComment { comment } => add_comment(program_id, accounts, comment),
+        MoviesInstruction::InitializeMint => initialize_token_mint(program_id, accounts),
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }
